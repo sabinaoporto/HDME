@@ -1,0 +1,240 @@
+
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8"/>
+        <title>Kepler.gl embedded map</title>
+
+        <!--Uber Font-->
+        <link rel="stylesheet" href="https://d1a3f4spazzrp4.cloudfront.net/kepler.gl/uber-fonts/4.0.0/superfine.css">
+
+        <!--Kepler css-->
+        <link href="https://unpkg.com/kepler.gl@3.1.8/umd/keplergl.min.css" rel="stylesheet">
+
+        <!--MapBox css-->
+        <link href="https://api.tiles.mapbox.com/mapbox-gl-js/v1.1.1/mapbox-gl.css" rel="stylesheet">
+        <link href="https://unpkg.com/maplibre-gl@^3/dist/maplibre-gl.css" rel="stylesheet">
+
+        <!-— facebook open graph tags -->
+        <meta property="og:url" content="http://kepler.gl/" />
+        <meta property="og:title" content="Large-scale WebGL-powered Geospatial Data Visualization Tool" />
+        <meta property="og:description" content="Kepler.gl is a powerful web-based geospatial data analysis tool. Built on a high performance rendering engine and designed for large-scale data sets." />
+        <meta property="og:site_name" content="kepler.gl" />
+        <meta property="og:image" content="https://d1a3f4spazzrp4.cloudfront.net/kepler.gl/kepler.gl-meta-tag.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="800" />
+        <meta property="og:image:height" content="800" />
+
+        <!-— twitter card tags -->
+        <meta name="twitter:card" content="summary_large_image">
+        <meta name="twitter:site" content="@openjsf">
+        <meta name="twitter:creator" content="@openjsf">
+        <meta name="twitter:title" content="Large-scale WebGL-powered Geospatial Data Visualization Tool">
+        <meta name="twitter:description" content="Kepler.gl is a powerful web-based geospatial data analysis tool. Built on a high performance rendering engine and designed for large-scale data sets.">
+        <meta name="twitter:image" content="https://d1a3f4spazzrp4.cloudfront.net/kepler.gl/kepler.gl-meta-tag.png" />
+
+        <!-- Load React/Redux -->
+        <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+        <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+        <script src="https://unpkg.com/redux@4.2.1/dist/redux.js" crossorigin></script>
+        <script src="https://unpkg.com/react-redux@8.1.2/dist/react-redux.min.js" crossorigin></script>
+        <script src="https://unpkg.com/styled-components@6.1.8/dist/styled-components.min.js" crossorigin></script>
+
+        <!-- Load Kepler.gl -->
+        <script src="https://unpkg.com/kepler.gl@3.1.8/umd/keplergl.min.js" crossorigin></script>
+
+        <style type="text/css">
+          body {margin: 0; padding: 0; overflow: hidden;}
+        </style>
+
+        <!--MapBox token-->
+        <script>
+          /**
+           * Provide your MapBox Token
+           **/
+          const MAPBOX_TOKEN = 'pk.eyJ1IjoidWNmLW1hcGJveCIsImEiOiJjbDBiYzlveHgwdnF0M2NtZzUzZWZuNWZ4In0.l9J8ptz3MKwaU9I4PtCcig';
+          const WARNING_MESSAGE = 'Please Provide a Mapbox Token in order to use Kepler.gl. Edit this file and fill out MAPBOX_TOKEN with your access key';
+        </script>
+
+        <!-- GA: Delete this as you wish, However to pat ourselves on the back, we only track anonymous pageview to understand how many people are using kepler.gl. -->
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+          ga('create', 'UA-64694404-19', {
+            'storage': 'none',
+            'clientId': localStorage.getItem('ga:clientId')
+          });
+          ga(function(tracker) {
+              localStorage.setItem('ga:clientId', tracker.get('clientId'));
+          });
+          ga('set', 'checkProtocolTask', null); // Disable file protocol checking.
+          ga('set', 'checkStorageTask', null); // Disable cookie storage checking.
+          ga('set', 'historyImportTask', null); // Disable history checking (requires reading from cookies).
+          ga('set', 'page', 'keplergl-html');
+          ga('send', 'pageview');
+        </script>
+      </head>
+      <body>
+        <!-- We will put our React component inside this div. -->
+        <div id="app">
+          <!-- Kepler.gl map will be placed here-->
+        </div>
+
+        <!-- Load our React component. -->
+        <script>
+          /* Validate Mapbox Token */
+          if ((MAPBOX_TOKEN || '') === '' || MAPBOX_TOKEN === 'PROVIDE_MAPBOX_TOKEN') {
+            alert(WARNING_MESSAGE);
+          }
+
+          /** STORE **/
+          const reducers = (function createReducers(redux, keplerGl) {
+            return redux.combineReducers({
+              // mount keplerGl reducer
+              keplerGl: keplerGl.keplerGlReducer.initialState({
+                uiState: {
+                  readOnly: true,
+                  currentModal: null
+                }
+              })
+            });
+          }(Redux, KeplerGl));
+
+          const middleWares = (function createMiddlewares(keplerGl) {
+            return keplerGl.enhanceReduxMiddleware([
+              // Add other middlewares here
+            ]);
+          }(KeplerGl));
+
+          const enhancers = (function craeteEnhancers(redux, middles) {
+            return redux.applyMiddleware(...middles);
+          }(Redux, middleWares));
+
+          const store = (function createStore(redux, enhancers) {
+            const initialState = {};
+
+            return redux.createStore(
+              reducers,
+              initialState,
+              redux.compose(enhancers)
+            );
+          }(Redux, enhancers));
+          /** END STORE **/
+
+          /** COMPONENTS **/
+          var KeplerElement = (function makeKeplerElement(react, keplerGl, mapboxToken) {
+            var LogoSvg = function LogoSvg() {
+              return react.createElement(
+                "div",
+                { className: "logo-container", style: {position: 'fixed', zIndex: 10000, padding: '4px'} },
+                  react.createElement(
+                    "svg",
+                    {
+                      className: "kepler_gl__logo",
+                      width: "107px",
+                      height: "21px",
+                      viewBox: "0 0 124 24"
+                    },
+                    react.createElement(
+                      "g",
+                      { transform: "translate(13.500000, 13.500000) rotate(45.000000) translate(-13.500000, -13.500000) translate(4.000000, 4.000000)" },
+                      react.createElement("rect", { x: "0", y: "6", transform: "matrix(2.535181e-06 1 -1 2.535181e-06 18.1107 6.0369)", fill: "#535C6C", width: "12.1", height: "12.1" }),
+                      react.createElement("rect", { x: "6", y: "0", transform: "matrix(2.535182e-06 1 -1 2.535182e-06 18.1107 -6.0369)", fill:"#1FBAD6", width: "12.1", height: "12.1" })
+                    ),
+                    react.createElement(
+                      "g",
+                      {},
+                      react.createElement("path", { fill:"#1FBAD6", d: "M39,8.7h2.2l-2.8,4.2l2.9,5.1H39l-2.4-4.2h-1.3V18h-2V5l2-0.1v7.3h1.3L39,8.7z" }),
+                      react.createElement("path", { fill:"#1FBAD6", d: "M42.4,13.3c0-1.5,0.4-2.7,1.1-3.5s1.8-1.2,3.1-1.2c1.3,0,2.2,0.4,2.8,1.1c0.6,0.7,0.9,1.8,0.9,3.3 c0,0.4,0,0.8,0,1.1h-5.8c0,1.6,0.8,2.4,2.4,2.4c1,0,2-0.2,2.9-0.6l0.2,1.7c-0.4,0.2-0.9,0.4-1.4,0.5s-1.1,0.2-1.7,0.2 c-1.5,0-2.6-0.4-3.3-1.2C42.8,16.1,42.4,14.9,42.4,13.3z M46.6,10.1c-0.7,0-1.2,0.2-1.5,0.5c-0.4,0.4-0.6,0.9-0.6,1.7h4 c0-0.8-0.2-1.4-0.5-1.7S47.2,10.1,46.6,10.1z" }),
+                      react.createElement("path", { fill:"#1FBAD6", d: "M57.1,18.2c-1,0-1.8-0.3-2.3-0.9l0,0l0,1.3v2.5h-2V8.7h1.5l0.3,0.9h0c0.3-0.3,0.7-0.6,1.2-0.7 c0.4-0.2,0.9-0.3,1.4-0.3c1.2,0,2.1,0.4,2.7,1.1c0.6,0.7,0.9,2,0.9,3.7c0,1.6-0.3,2.8-1,3.7C59.2,17.8,58.3,18.2,57.1,18.2z M56.7,10.3c-0.4,0-0.8,0.1-1.1,0.2c-0.3,0.2-0.6,0.4-0.8,0.7v4.3c0.2,0.3,0.4,0.5,0.7,0.7c0.3,0.2,0.7,0.3,1.1,0.3 c0.7,0,1.2-0.2,1.6-0.7c0.4-0.5,0.5-1.3,0.5-2.5c0-0.8-0.1-1.4-0.2-1.8s-0.4-0.7-0.7-0.9C57.6,10.4,57.2,10.3,56.7,10.3z" }),
+                      react.createElement("path", { fill:"#1FBAD6", d: "M63.2,16V5l2-0.1v10.8c0,0.3,0.1,0.5,0.2,0.6c0.1,0.1,0.3,0.2,0.6,0.2c0.3,0,0.6,0,0.9-0.1V18 c-0.4,0.1-1,0.2-1.6,0.2c-0.8,0-1.3-0.2-1.7-0.5S63.2,16.8,63.2,16z" }),
+                      react.createElement("path", { fill:"#1FBAD6", d: "M68.2,13.3c0-1.5,0.4-2.7,1.1-3.5c0.7-0.8,1.8-1.2,3.1-1.2c1.3,0,2.2,0.4,2.8,1.1c0.6,0.7,0.9,1.8,0.9,3.3 c0,0.4,0,0.8,0,1.1h-5.8c0,1.6,0.8,2.4,2.4,2.4c1,0,2-0.2,2.9-0.6l0.2,1.7c-0.4,0.2-0.9,0.4-1.4,0.5s-1.1,0.2-1.7,0.2 c-1.5,0-2.6-0.4-3.3-1.2C68.6,16.1,68.2,14.9,68.2,13.3z M72.4,10.1c-0.7,0-1.2,0.2-1.5,0.5c-0.4,0.4-0.6,0.9-0.6,1.7h4 c0-0.8-0.2-1.4-0.5-1.7S73,10.1,72.4,10.1z" }),
+                      react.createElement("path", { fill:"#1FBAD6", d: "M80.2,8.7l0.1,1.7h0c0.3-0.6,0.7-1.1,1.1-1.4c0.4-0.3,1-0.5,1.6-0.5c0.4,0,0.7,0,1,0.1l-0.1,2 c-0.3-0.1-0.7-0.2-1-0.2c-0.7,0-1.3,0.3-1.7,0.8c-0.4,0.5-0.7,1.2-0.7,2.1V18h-2V8.7H80.2z" }),
+                      react.createElement("path", { fill:"#1FBAD6", d: "M83.8,17c0-0.8,0.4-1.2,1.2-1.2c0.8,0,1.2,0.4,1.2,1.2c0,0.8-0.4,1.1-1.2,1.1C84.2,18.2,83.8,17.8,83.8,17z" }),
+                      react.createElement("path", { fill:"#1FBAD6", d: "M88.5,18.7c0-0.8,0.4-1.4,1.2-1.8c-0.6-0.3-0.9-0.8-0.9-1.5c0-0.7,0.4-1.2,1.1-1.6c-0.3-0.3-0.6-0.6-0.7-0.9 c-0.2-0.4-0.2-0.8-0.2-1.3c0-1,0.3-1.8,0.9-2.3c0.6-0.5,1.6-0.8,2.8-0.8c0.5,0,1,0,1.4,0.1c0.4,0.1,0.8,0.2,1.1,0.4l2.4-0.2v1.5 h-1.5c0.2,0.4,0.2,0.8,0.2,1.3c0,1-0.3,1.7-0.9,2.2s-1.5,0.8-2.7,0.8c-0.7,0-1.2-0.1-1.6-0.2c-0.1,0.1-0.2,0.2-0.3,0.3 c-0.1,0.1-0.1,0.2-0.1,0.4c0,0.2,0.1,0.3,0.2,0.4c0.1,0.1,0.3,0.2,0.6,0.2l2.7,0.2c1,0.1,1.7,0.3,2.2,0.6c0.5,0.3,0.8,0.9,0.8,1.7 c0,0.6-0.2,1.1-0.5,1.5c-0.4,0.4-0.9,0.8-1.5,1c-0.7,0.2-1.5,0.4-2.4,0.4c-1.3,0-2.3-0.2-3-0.6C88.8,20.1,88.5,19.5,88.5,18.7z M95.1,18.4c0-0.3-0.1-0.5-0.3-0.7s-0.6-0.2-1.1-0.3l-2.7-0.3c-0.2,0.1-0.4,0.3-0.5,0.5c-0.1,0.2-0.2,0.4-0.2,0.6 c0,0.4,0.2,0.8,0.5,1c0.4,0.2,1,0.3,1.8,0.3C94.2,19.5,95.1,19.2,95.1,18.4z M94.3,11.5c0-0.6-0.1-1-0.4-1.2 c-0.3-0.2-0.7-0.3-1.3-0.3c-0.7,0-1.1,0.1-1.4,0.3c-0.3,0.2-0.4,0.6-0.4,1.2s0.1,1,0.4,1.2c0.3,0.2,0.7,0.3,1.4,0.3 c0.6,0,1.1-0.1,1.3-0.4S94.3,12,94.3,11.5z" }),
+                      react.createElement("path", { fill:"#1FBAD6", d: "M99.4,16V5l2-0.1v10.8c0,0.3,0.1,0.5,0.2,0.6c0.1,0.1,0.3,0.2,0.6,0.2c0.3,0,0.6,0,0.9-0.1V18 c-0.4,0.1-1,0.2-1.6,0.2c-0.8,0-1.3-0.2-1.7-0.5S99.4,16.8,99.4,16z" })
+                    )
+                  )
+                );
+              };
+
+            return function App() {
+              var rootElm = react.useRef(null);
+              var _useState = react.useState({
+                width: window.innerWidth,
+                height: window.innerHeight
+              });
+              var windowDimension = _useState[0];
+              var setDimension = _useState[1];
+              react.useEffect(function sideEffect(){
+                function handleResize() {
+                  setDimension({width: window.innerWidth, height: window.innerHeight});
+                };
+                window.addEventListener('resize', handleResize);
+                return function() {window.removeEventListener('resize', handleResize);};
+              }, []);
+              return react.createElement(
+                'div',
+                {style: {position: 'absolute', left: 0, width: '100vw', height: '100vh'}},
+                LogoSvg(),
+                react.createElement(keplerGl.KeplerGl, {
+                  mapboxApiAccessToken: mapboxToken,
+                  id: "map",
+                  width: windowDimension.width,
+                  height: windowDimension.height
+                })
+              )
+            }
+          }(React, KeplerGl, MAPBOX_TOKEN));
+
+          const app = (function createReactReduxProvider(react, reactRedux, KeplerElement) {
+            return react.createElement(
+              reactRedux.Provider,
+              {store},
+              react.createElement(KeplerElement, null)
+            )
+          }(React, ReactRedux, KeplerElement));
+          /** END COMPONENTS **/
+
+          /** Render **/
+          (function render(react, reactDOM, app) {
+            const container = document.getElementById('app');
+            const root = reactDOM.createRoot(container);
+            root.render(app);
+          }(React, ReactDOM, app));
+        </script>
+        <!-- The next script will show how to interact directly with Kepler map store -->
+        <script>
+          /**
+           * Customize map.
+           * In the following section you can use the store object to dispatch Kepler.gl actions
+           * to add new data and customize behavior
+           */
+          (function customize(keplerGl, store) {
+            const datasets = [{"version":"v1","data":{"id":"c8lnqq","label":"jcdpbqdxbvlpsm.csv","color":[143,47,191],"allData":[["44e7b2ba-2ba0-434d-a4a8-f418c6c53b0f","Avril-Juillet-1834.txt","Europe","char-offset:174","PLACE","http://pleiades.stoa.org/places/1001887","Europe",null,42.5,27.5,"province","UNVERIFIED",null,null,null,null],["850da6e1-71a4-4369-a6b6-edd3386f5ed3","Avril-Juillet-1834.txt","Doubs","char-offset:1162","PLACE","http://geo-kima.org/place/17118","Doubs (France)",null,null,null,null,"UNVERIFIED",null,null,null,null],["508bbc49-5c9c-47da-bb69-eb574e935b3d","Avril-Juillet-1834.txt","Besançon","char-offset:1494","PLACE","http://sws.geonames.org/3033123","Vesontio|Oppidum, Besançon|Vesontio, Besançon|Amphitheater, Besançon|Besançon","-0330/2100",47.230604,6.033129,"arch,settlement,architecturalcomplex","VERIFIED",null,null,null,null],["d397c07d-0910-4d52-80e2-d6378e589b5b","Avril-Juillet-1834.txt","Franche-Comté","char-offset:1661","PLACE","http://geo-kima.org/place/9753","Franche-Comté (France)",null,null,null,null,"VERIFIED",null,null,null,null],["902bb8fe-0b75-43ba-a08d-f00811e17f49","Avril-Juillet-1834.txt","Franche-Comté","char-offset:1955","PLACE","http://geo-kima.org/place/9753","Franche-Comté (France)",null,null,null,null,"VERIFIED",null,null,null,null],["48a626e1-08a7-49f3-ba58-50e235213e75","Avril-Juillet-1834.txt","Besançon","char-offset:2051","PLACE","http://sws.geonames.org/3033123","Vesontio|Oppidum, Besançon|Vesontio, Besançon|Amphitheater, Besançon|Besançon","-0330/2100",47.230604,6.033129,"arch,settlement,architecturalcomplex","VERIFIED",null,null,null,null],["b60bf212-fd41-4b55-a994-cb080886a004","Avril-Juillet-1834.txt","Lyon","char-offset:2072","PLACE","http://pleiades.stoa.org/places/167717","Col. Lugdunum|Théâtre Gallo-Romain de Fourvière, Lyon|Col. Lugdunum/Lugudunum, Lyon|Odéon, Lyon|thermes antique, Lyon|Amphithéâtre fédéral romain des Trois Gaules, Lyon|Lyon","-0550/2100",45.759683,4.819827,"theatre,sanctuary,settlement","VERIFIED",null,null,null,null],["94f62b10-133f-4a3f-9f16-078d3826774e","Avril-Juillet-1834.txt","Doubs","char-offset:2464","PLACE","http://geo-kima.org/place/17118","Doubs (France)",null,null,null,null,"UNVERIFIED",null,null,null,null],["0d5331c5-0ef8-47f3-bc22-a42e19cbd63c","Avril-Juillet-1834.txt","Lyon","char-offset:2505","PLACE","http://pleiades.stoa.org/places/167717","Col. Lugdunum|Théâtre Gallo-Romain de Fourvière, Lyon|Col. Lugdunum/Lugudunum, Lyon|Odéon, Lyon|thermes antique, Lyon|Amphithéâtre fédéral romain des Trois Gaules, Lyon|Lyon","-0550/2100",45.759683,4.819827,"theatre,sanctuary,settlement","VERIFIED",null,null,null,null],["af9c0bce-31d0-4213-a666-c7122be2ef16","Avril-Juillet-1834.txt","rue Saint-Vincent","char-offset:2905","PLACE",null,null,null,null,null,null,"UNVERIFIED",null,null,null,null],["dd16fa9c-16c4-4d84-a49a-cc4446819ef7","Avril-Juillet-1834.txt","Saint-Pierre","char-offset:3020","PLACE","http://sws.geonames.org/3168714","Saint-Pierre",null,45.71153,7.22683,null,"UNVERIFIED",null,null,null,null],["1bf5ac5f-f19e-44ce-bc5d-eba23db09d95","Avril-Juillet-1834.txt","Champ de Mars","char-offset:3104","PLACE",null,null,null,null,null,null,"UNVERIFIED",null,"47.236245, 6.017756\n",null,null],["03906903-4799-4672-8289-e6c4a3f1706e","Avril-Juillet-1834.txt","Pontarlier","char-offset:3297","PLACE","http://sws.geonames.org/2986302","Ariorica|Pons Ariolica, Pontarlier|Pontarlier","-0030/0640",46.90217,6.35649,"settlement","VERIFIED",null,null,null,null],["5e4602bd-d5dd-43c2-81b1-2b6a30782b59","Avril-Juillet-1834.txt","ville d’Arbois","char-offset:3319","PLACE",null,null,null,null,null,null,"UNVERIFIED",null,null,null,null],["2ff69c36-2acd-4777-ab48-23c5fc046d8d","Avril-Juillet-1834.txt","d'Arbois","char-offset:3427","PLACE","http://sws.geonames.org/3037287","Arbois",null,46.90311,5.77454,null,"VERIFIED",null,null,null,null],["be19fd5a-a7a7-4552-b808-fcc024c7c87d","Avril-Juillet-1834.txt","Besançon","char-offset:3503","PLACE","http://sws.geonames.org/3033123","Vesontio|Oppidum, Besançon|Vesontio, Besançon|Amphitheater, Besançon|Besançon","-0330/2100",47.230604,6.033129,"arch,settlement,architecturalcomplex","VERIFIED",null,null,null,null],["4d0ad067-adff-4da9-a2ed-0f6f5ecec971","Avril-Juillet-1834.txt","Lyon","char-offset:4299","PLACE","http://pleiades.stoa.org/places/167717","Col. Lugdunum|Théâtre Gallo-Romain de Fourvière, Lyon|Col. Lugdunum/Lugudunum, Lyon|Odéon, Lyon|thermes antique, Lyon|Amphithéâtre fédéral romain des Trois Gaules, Lyon|Lyon","-0550/2100",45.759683,4.819827,"theatre,sanctuary,settlement","VERIFIED",null,null,null,null],["f2248876-ae33-4fa7-94f2-3346cf3382fd","Avril-Juillet-1834.txt","Canot.","char-offset:4457","PLACE",null,null,null,null,null,null,"UNVERIFIED",null,null,null,null],["b5d22343-30ab-4a9e-af2f-962de1a24164","Avril-Juillet-1834.txt","Besançon","char-offset:5168","PLACE","http://sws.geonames.org/3033123","Vesontio|Oppidum, Besançon|Vesontio, Besançon|Amphitheater, Besançon|Besançon","-0330/2100",47.230604,6.033129,"arch,settlement,architecturalcomplex","VERIFIED",null,null,null,null],["50866584-e279-4cee-a6ee-4e3b3d8353cb","Avril-Juillet-1834.txt","Arbois","char-offset:5199","PLACE","http://sws.geonames.org/3037287","Arbois",null,46.90311,5.77454,null,"VERIFIED",null,null,null,null],["1ba90b73-5346-4cd3-844c-632b7f20dba6","Avril-Juillet-1834.txt","d’Arbois,","char-offset:5771","PLACE","http://sws.geonames.org/3037287","Arbois",null,46.90311,5.77454,null,"VERIFIED",null,null,null,null],["cdf9b277-bb73-4468-b988-a129b2193bb6","Avril-Juillet-1834.txt","Arbois","char-offset:5910","PLACE","http://sws.geonames.org/3037287","Arbois",null,46.90311,5.77454,null,"VERIFIED",null,null,null,null],["9c4280ab-75c6-4589-be40-be0faf18ad4c","Avril-Juillet-1834.txt","Epercy","char-offset:6154","PLACE",null,null,null,null,null,null,"NOT_IDENTIFIABLE",null,null,null,null],["f1297ae9-bc6d-4a11-b4dc-086ba2ed6e75","Avril-Juillet-1834.txt","Arbois","char-offset:6934","PLACE","http://sws.geonames.org/3037287","Arbois",null,46.90311,5.77454,null,"VERIFIED",null,null,null,null],["9b04b2da-e2bc-43da-bac8-1d4fd58e1b46","Avril-Juillet-1834.txt","Arbois","char-offset:7621","PLACE","http://sws.geonames.org/3037287","Arbois",null,46.90311,5.77454,null,"VERIFIED",null,null,null,null],["039374aa-1d83-4091-92c9-e5ab0fdb54b4","Avril-Juillet-1834.txt","Paris","char-offset:8958","PLACE","http://sws.geonames.org/2988507","Oppidum, Paris|Thermes de l'Est, Paris|Arènes de Paris|Lutetia|Lutetia/Parisius, Paris|Thermes de Cluny, Paris|Paris","-0330/2100",48.856667,2.350987,"amphitheatre,bath,settlement","VERIFIED",null,null,null,null],["b0036977-560c-4d96-b84d-f1b02e96380a","Avril-Juillet-1834.txt","Paris","char-offset:9070","PLACE","http://sws.geonames.org/2988507","Oppidum, Paris|Thermes de l'Est, Paris|Arènes de Paris|Lutetia|Lutetia/Parisius, Paris|Thermes de Cluny, Paris|Paris","-0330/2100",48.856667,2.350987,"amphitheatre,bath,settlement","VERIFIED",null,null,null,null],["8584a4e7-bfe3-4773-abfc-aaf79d368a4d","Avril-Juillet-1834.txt","église Saint-Eustache","char-offset:9287","PLACE",null,null,null,null,null,null,"NOT_IDENTIFIABLE",null,null,null,null],["4c60731f-eddc-43a3-b543-fbf3a01938ed","Avril-Juillet-1834.txt","Dole","char-offset:9336","PLACE","http://sws.geonames.org/3021263","Crusinie|Crucinae?, Rochefort-sur-Nenon|Dole|Dole|Dole","-0330/0640",47.124579,5.559928,"unlocated,mine","VERIFIED",null,null,null,null],["377a9465-40b3-418b-8c06-9203702796bb","Avril-Juillet-1834.txt","Dole","char-offset:9336","PLACE","http://pleiades.stoa.org/places/181208","Crusinie|Crucinae?, Rochefort-sur-Nenon|Dole|Dole|Dole","-0330/0640",47.124579,5.559928,"unlocated,mine","VERIFIED",null,null,null,null],["a05d5d76-2950-4e3d-a03e-9b62d5b4c25b","Avril-Juillet-1834.txt","Saint-Pierre de Besançon","char-offset:9349","PLACE",null,null,null,null,null,null,"NOT_IDENTIFIABLE",null,null,null,null],["2fdc0d08-48c2-4389-8727-3d84810e78d0","Avril-Juillet-1834.txt","Saint-Pierre","char-offset:9349","PLACE","http://sws.geonames.org/3168714","Saint-Pierre",null,45.71153,7.22683,null,"UNVERIFIED",null,null,null,null],["bb5419dc-09d4-4226-884b-5d07161cec86","Avril-Juillet-1834.txt","Paris","char-offset:9451","PLACE","http://sws.geonames.org/2988507","Oppidum, Paris|Thermes de l'Est, Paris|Arènes de Paris|Lutetia|Lutetia/Parisius, Paris|Thermes de Cluny, Paris|Paris","-0330/2100",48.856667,2.350987,"amphitheatre,bath,settlement","VERIFIED",null,null,null,null],["9c1da929-0a65-4309-b088-d26051143d28","Avril-Juillet-1834.txt","Chamars","char-offset:10087","PLACE",null,null,null,null,null,null,"NOT_IDENTIFIABLE",null,null,null,null],["9937a59a-4154-4ac7-8896-cf214e37a703","Avril-Juillet-1834.txt","Orchamps-Vennes","char-offset:12962","PLACE","http://sws.geonames.org/2989425","Orchamps-Vennes",null,47.13042,6.52468,null,"VERIFIED",null,null,null,null],["5d43039b-5358-4ea1-b93e-f9ba18e4e543","Avril-Juillet-1834.txt","Besançon,","char-offset:13167","PLACE","http://pleiades.stoa.org/places/177657","Vesontio|Oppidum, Besançon|Vesontio, Besançon|Amphitheater, Besançon|Besançon","-0330/2100",47.230604,6.033129,"arch,settlement,architecturalcomplex","VERIFIED",null,null,null,null],["0a880d0c-8fc8-486f-a137-2e2efb6e3c66","Avril-Juillet-1834.txt","Allemagne","char-offset:13507","PLACE","http://sws.geonames.org/2921044","Germany",null,51.11428797700689,10.393940105829056,null,"VERIFIED",null,null,null,null],["aff00e10-7233-429a-a197-1fab25ce164c","Avril-Juillet-1834.txt","Besançon,","char-offset:13683","PLACE","http://pleiades.stoa.org/places/177657","Vesontio|Oppidum, Besançon|Vesontio, Besançon|Amphitheater, Besançon|Besançon","-0330/2100",47.230604,6.033129,"arch,settlement,architecturalcomplex","VERIFIED",null,null,null,null],["c8de3581-b18e-42c0-b425-75a3ac025333","Avril-Juillet-1834.txt","Besançon,","char-offset:14499","PLACE","http://pleiades.stoa.org/places/177657","Vesontio|Oppidum, Besançon|Vesontio, Besançon|Amphitheater, Besançon|Besançon","-0330/2100",47.230604,6.033129,"arch,settlement,architecturalcomplex","VERIFIED",null,null,null,null],["9146a348-33cc-4f66-a120-747ea5d074ff","Avril-Juillet-1834.txt","Besançon","char-offset:14809","PLACE","http://sws.geonames.org/3033123","Vesontio|Oppidum, Besançon|Vesontio, Besançon|Amphitheater, Besançon|Besançon","-0330/2100",47.230604,6.033129,"arch,settlement,architecturalcomplex","VERIFIED",null,null,null,null],["8543dcbc-b141-40ff-9fdf-b51fa7f9ea97","Avril-Juillet-1834.txt","Besançon,","char-offset:20869","PLACE","http://pleiades.stoa.org/places/177657","Vesontio|Oppidum, Besançon|Vesontio, Besançon|Amphitheater, Besançon|Besançon","-0330/2100",47.230604,6.033129,"arch,settlement,architecturalcomplex","VERIFIED",null,null,null,null],["364af0a7-f61d-4258-a704-70411f464506","Avril-Juillet-1834.txt","Besançon","char-offset:22882","PLACE","http://sws.geonames.org/3033123","Vesontio|Oppidum, Besançon|Vesontio, Besançon|Amphitheater, Besançon|Besançon","-0330/2100",47.230604,6.033129,"arch,settlement,architecturalcomplex","VERIFIED",null,null,null,null],["4370b83d-e0a6-43cb-8426-f0822250dc9e","Avril-Juillet-1834.txt","Besançon,","char-offset:23657","PLACE","http://pleiades.stoa.org/places/177657","Vesontio|Oppidum, Besançon|Vesontio, Besançon|Amphitheater, Besançon|Besançon","-0330/2100",47.230604,6.033129,"arch,settlement,architecturalcomplex","VERIFIED",null,null,null,null],["3d2f3a7b-bfaf-4768-8422-1dc1eabbdccd","Avril-Juillet-1834.txt","Paris","char-offset:25705","PLACE","http://sws.geonames.org/2988507","Oppidum, Paris|Thermes de l'Est, Paris|Arènes de Paris|Lutetia|Lutetia/Parisius, Paris|Thermes de Cluny, Paris|Paris","-0330/2100",48.856667,2.350987,"amphitheatre,bath,settlement","VERIFIED",null,null,null,null],["a6cc5ce7-025f-4c4e-8156-0659ebdd08d1","Avril-Juillet-1834.txt","Pontarlier","char-offset:26003","PLACE","http://sws.geonames.org/2986302","Ariorica|Pons Ariolica, Pontarlier|Pontarlier","-0030/0640",46.90217,6.35649,"settlement","VERIFIED",null,null,null,null],["ee5b1c59-e48f-4221-b717-8ab2a954e298","Avril-Juillet-1834.txt","Pontarlier","char-offset:26003","PLACE","http://sws.geonames.org/2986302","Ariorica|Pons Ariolica, Pontarlier|Pontarlier","-0030/0640",46.90217,6.35649,"settlement","VERIFIED",null,null,null,null],["2ad02451-8d52-40a4-b901-33e718ec06b3","Avril-Juillet-1834.txt","Saint-Ferjeux","char-offset:27454","PLACE","http://sws.geonames.org/2980094","Saint-Forgeux",null,45.85979,4.47486,null,"VERIFIED",null,null,null,null],["bdf5f3ab-6719-4ec7-b699-ba6d13e133cb","Avril-Juillet-1834.txt","Besançon","char-offset:28581","PLACE","http://sws.geonames.org/3033123","Vesontio|Oppidum, Besançon|Vesontio, Besançon|Amphitheater, Besançon|Besançon","-0330/2100",47.230604,6.033129,"arch,settlement,architecturalcomplex","VERIFIED",null,null,null,null],["490aec0e-f11c-49a6-812d-a402bdc32a8f","Avril-Juillet-1834.txt","Besançon,","char-offset:30099","PLACE","http://pleiades.stoa.org/places/177657","Vesontio|Oppidum, Besançon|Vesontio, Besançon|Amphitheater, Besançon|Besançon","-0330/2100",47.230604,6.033129,"arch,settlement,architecturalcomplex","VERIFIED",null,null,null,null],["b0311e43-4b66-46a5-b409-7ed5c10d52e7","Avril-Juillet-1834.txt","Chamars","char-offset:30546","PLACE",null,null,null,null,null,null,"NOT_IDENTIFIABLE",null,null,null,null],["3da85e58-9f62-48ac-af0b-3b38a165ca09","Avril-Juillet-1834.txt","Lons-le-Saunier","char-offset:31069","PLACE","http://sws.geonames.org/2997626","*Ledo|*Ledo, Lons-le-Saunier|Lons-le-Saunier","-0330/0640",46.6740687,5.5516755,"settlement","VERIFIED",null,null,null,null],["ab90a70c-3dad-4e5c-8291-26766220d9e6","Avril-Juillet-1834.txt","rue Saint-Vincent","char-offset:31475","PLACE",null,null,null,null,null,null,"UNVERIFIED",null,null,null,null],["50dd67ba-35b4-4366-a883-1c03caf2c9e8","Avril-Juillet-1834.txt","Saint-Ferjeux","char-offset:31649","PLACE","http://sws.geonames.org/2980094","Saint-Forgeux",null,45.85979,4.47486,null,"VERIFIED",null,null,null,null],["dfbcb146-e367-4584-8a30-2c0cc4f96e1e","Avril-Juillet-1834.txt","Saint-Claude","char-offset:31742","PLACE","http://sws.geonames.org/2981077","Condatiscone, Saint-Claude|Saint-Claude","0300/0640",46.38659,5.86624,null,"VERIFIED",null,null,null,null],["f2c6b1bd-b3a5-4d01-a0f9-c8f4e06b65d9","Avril-Juillet-1834.txt","Bourgogne","char-offset:32315","PLACE","http://sws.geonames.org/3030965","Bourgogne",null,49.34962,4.07111,null,"VERIFIED",null,null,null,null],["9f8971ac-4594-4aa1-b682-6365c9e8b6b5","Avril-Juillet-1834.txt","Besançon","char-offset:32357","PLACE","http://sws.geonames.org/3033123","Vesontio|Oppidum, Besançon|Vesontio, Besançon|Amphitheater, Besançon|Besançon","-0330/2100",47.230604,6.033129,"arch,settlement,architecturalcomplex","VERIFIED",null,null,null,null],["df288c6d-e6b0-45a0-86bb-4feeb5f4b538","Avril-Juillet-1834.txt","Besançon","char-offset:32854","PLACE","http://sws.geonames.org/3033123","Vesontio|Oppidum, Besançon|Vesontio, Besançon|Amphitheater, Besançon|Besançon","-0330/2100",47.230604,6.033129,"arch,settlement,architecturalcomplex","VERIFIED",null,null,null,null],["c2f83fc0-ac0f-4ff6-a2a7-d03ed07373eb","Avril-Juillet-1834.txt","Besançon,","char-offset:32854","PLACE","http://pleiades.stoa.org/places/177657","Vesontio|Oppidum, Besançon|Vesontio, Besançon|Amphitheater, Besançon|Besançon","-0330/2100",47.230604,6.033129,"arch,settlement,architecturalcomplex","VERIFIED",null,null,null,null],["0f8f7e9a-9b07-4481-a6b3-8fdcd353082e","Avril-Juillet-1834.txt","Besançon","char-offset:34329","PLACE","http://sws.geonames.org/3033123","Vesontio|Oppidum, Besançon|Vesontio, Besançon|Amphitheater, Besançon|Besançon","-0330/2100",47.230604,6.033129,"arch,settlement,architecturalcomplex","VERIFIED",null,null,null,null],["9796a393-8df3-4a54-87c8-632b5687bd66","Avril-Juillet-1834.txt","Besançon,","char-offset:34442","PLACE","http://pleiades.stoa.org/places/177657","Vesontio|Oppidum, Besançon|Vesontio, Besançon|Amphitheater, Besançon|Besançon","-0330/2100",47.230604,6.033129,"arch,settlement,architecturalcomplex","VERIFIED",null,null,null,null],["034a5e89-04ce-4ad8-8377-f0206616792f","Avril-Juillet-1834.txt","Pontarlier","char-offset:34549","PLACE","http://sws.geonames.org/2986302","Ariorica|Pons Ariolica, Pontarlier|Pontarlier","-0030/0640",46.90217,6.35649,"settlement","VERIFIED",null,null,null,null],["8501d4bc-2b7b-4752-9ae6-d034b43363ad","Avril-Juillet-1834.txt","Besançon","char-offset:34799","PLACE","http://sws.geonames.org/3033123","Vesontio|Oppidum, Besançon|Vesontio, Besançon|Amphitheater, Besançon|Besançon","-0330/2100",47.230604,6.033129,"arch,settlement,architecturalcomplex","VERIFIED",null,null,null,null],["0ea6041d-503b-49ed-9993-e0a9e325d440","Avril-Juillet-1834.txt","Besançon","char-offset:34957","PLACE","http://sws.geonames.org/3033123","Vesontio|Oppidum, Besançon|Vesontio, Besançon|Amphitheater, Besançon|Besançon","-0330/2100",47.230604,6.033129,"arch,settlement,architecturalcomplex","VERIFIED",null,null,null,null],["3c34f952-5918-4d39-bf4e-bffc5935a051","Avril-Juillet-1834.txt","Ruffey","char-offset:35594","PLACE","http://sws.geonames.org/2982210","Ruffey-lès-Echirey",null,47.36667,5.08333,null,"VERIFIED",null,null,null,null],["6dce721c-00f3-4a00-982c-f40b8c6b4976","Avril-Juillet-1834.txt","Dole","char-offset:36474","PLACE","http://sws.geonames.org/3021263","Crusinie|Crucinae?, Rochefort-sur-Nenon|Dole|Dole|Dole","-0330/0640",47.124579,5.559928,"unlocated,mine","VERIFIED",null,null,null,null],["da3a823c-2ee0-4174-afc0-24e08e557b8f","Avril-Juillet-1834.txt","Dole","char-offset:36474","PLACE","http://pleiades.stoa.org/places/181208","Crusinie|Crucinae?, Rochefort-sur-Nenon|Dole|Dole|Dole","-0330/0640",47.124579,5.559928,"unlocated,mine","VERIFIED",null,null,null,null],["410b5da1-0d70-4dc1-842c-814ac491316e","Avril-Juillet-1834.txt","Besançon,","char-offset:37256","PLACE","http://pleiades.stoa.org/places/177657","Vesontio|Oppidum, Besançon|Vesontio, Besançon|Amphitheater, Besançon|Besançon","-0330/2100",47.230604,6.033129,"arch,settlement,architecturalcomplex","VERIFIED",null,null,null,null],["e748475f-7bfe-4151-a8d4-9d3b98e3c3a6","Avril-Juillet-1834.txt","Paris","char-offset:42043","PLACE","http://sws.geonames.org/2988507","Oppidum, Paris|Thermes de l'Est, Paris|Arènes de Paris|Lutetia|Lutetia/Parisius, Paris|Thermes de Cluny, Paris|Paris","-0330/2100",48.856667,2.350987,"amphitheatre,bath,settlement","VERIFIED",null,null,null,null],["fce21cd3-fbb1-4ba1-9f17-426ba2714ffd","Avril-Juillet-1834.txt","Paris","char-offset:42468","PLACE","http://sws.geonames.org/2988507","Oppidum, Paris|Thermes de l'Est, Paris|Arènes de Paris|Lutetia|Lutetia/Parisius, Paris|Thermes de Cluny, Paris|Paris","-0330/2100",48.856667,2.350987,"amphitheatre,bath,settlement","VERIFIED",null,null,null,null],["a1c5405f-f0fd-4f7e-9823-f8e33ee23450","Avril-Juillet-1834.txt","Paris","char-offset:42618","PLACE","http://sws.geonames.org/2988507","Oppidum, Paris|Thermes de l'Est, Paris|Arènes de Paris|Lutetia|Lutetia/Parisius, Paris|Thermes de Cluny, Paris|Paris","-0330/2100",48.856667,2.350987,"amphitheatre,bath,settlement","VERIFIED",null,null,null,null],["2518a307-d495-49a6-a8f4-39af80df1f45","Avril-Juillet-1834.txt","d'Arbois","char-offset:43672","PLACE","http://sws.geonames.org/3037287","Arbois",null,46.90311,5.77454,null,"VERIFIED",null,null,null,null],["98d74521-4c5e-4b83-86b4-7b3d3abe4da5","Avril-Juillet-1834.txt","Besançon,","char-offset:44334","PLACE","http://pleiades.stoa.org/places/177657","Vesontio|Oppidum, Besançon|Vesontio, Besançon|Amphitheater, Besançon|Besançon","-0330/2100",47.230604,6.033129,"arch,settlement,architecturalcomplex","VERIFIED",null,null,null,null],["6f5ecfb1-c9cb-482a-88c5-5bf6195afd5f","Avril-Juillet-1834.txt","Saint-Ferjeux","char-offset:46311","PLACE","http://sws.geonames.org/2980094","Saint-Forgeux",null,45.85979,4.47486,null,"VERIFIED",null,null,null,null],["da483ce0-ddcc-4c3a-8abf-b4c1d1c085e0","Avril-Juillet-1834.txt","Paris","char-offset:47535","PLACE","http://sws.geonames.org/2988507","Oppidum, Paris|Thermes de l'Est, Paris|Arènes de Paris|Lutetia|Lutetia/Parisius, Paris|Thermes de Cluny, Paris|Paris","-0330/2100",48.856667,2.350987,"amphitheatre,bath,settlement","VERIFIED",null,null,null,null],["a242cd5a-030c-4b64-b13e-355fd816bad2","Avril-Juillet-1834.txt","Paris","char-offset:47642","PLACE","http://sws.geonames.org/2988507","Oppidum, Paris|Thermes de l'Est, Paris|Arènes de Paris|Lutetia|Lutetia/Parisius, Paris|Thermes de Cluny, Paris|Paris","-0330/2100",48.856667,2.350987,"amphitheatre,bath,settlement","VERIFIED",null,null,null,null],["9268ea65-ebc3-4095-884b-e6a82c8134ea","Avril-Juillet-1834.txt","Besançon","char-offset:48634","PLACE","http://sws.geonames.org/3033123","Vesontio|Oppidum, Besançon|Vesontio, Besançon|Amphitheater, Besançon|Besançon","-0330/2100",47.230604,6.033129,"arch,settlement,architecturalcomplex","VERIFIED",null,null,null,null],["94ae1ad8-a6ed-496b-ba84-866bdf1bf51a","Avril-Juillet-1834.txt","Besançon","char-offset:49209","PLACE","http://sws.geonames.org/3033123","Vesontio|Oppidum, Besançon|Vesontio, Besançon|Amphitheater, Besançon|Besançon","-0330/2100",47.230604,6.033129,"arch,settlement,architecturalcomplex","VERIFIED",null,null,null,null],["d1b6ca57-03da-42e1-92bd-57a9ffc9ef32","Avril-Juillet-1834.txt","Besançon","char-offset:49645","PLACE","http://sws.geonames.org/3033123","Vesontio|Oppidum, Besançon|Vesontio, Besançon|Amphitheater, Besançon|Besançon","-0330/2100",47.230604,6.033129,"arch,settlement,architecturalcomplex","VERIFIED",null,null,null,null],["fd445bf0-b7d7-44a6-ab4c-5cd31ca02e59","Avril-Juillet-1834.txt","Paris","char-offset:50335","PLACE","http://sws.geonames.org/2988507","Oppidum, Paris|Thermes de l'Est, Paris|Arènes de Paris|Lutetia|Lutetia/Parisius, Paris|Thermes de Cluny, Paris|Paris","-0330/2100",48.856667,2.350987,"amphitheatre,bath,settlement","VERIFIED",null,null,null,null],["f4a8eb26-0b4b-40c5-b800-bfd1b4efa01d","Avril-Juillet-1834.txt","Besançon,","char-offset:50560","PLACE","http://pleiades.stoa.org/places/177657","Vesontio|Oppidum, Besançon|Vesontio, Besançon|Amphitheater, Besançon|Besançon","-0330/2100",47.230604,6.033129,"arch,settlement,architecturalcomplex","VERIFIED",null,null,null,null],["7bff65ac-695e-420f-a977-f559de5f5b43","Avril-Juillet-1834.txt","Saint-Ferjeux","char-offset:50610","PLACE","http://sws.geonames.org/2980094","Saint-Forgeux",null,45.85979,4.47486,null,"VERIFIED",null,null,null,null],["83b9d2da-7b8d-43d8-9f98-9455f7c0fec4","Avril-Juillet-1834.txt","Paris","char-offset:51105","PLACE","http://sws.geonames.org/2988507","Oppidum, Paris|Thermes de l'Est, Paris|Arènes de Paris|Lutetia|Lutetia/Parisius, Paris|Thermes de Cluny, Paris|Paris","-0330/2100",48.856667,2.350987,"amphitheatre,bath,settlement","VERIFIED",null,null,null,null],["06ff62d4-a0e6-4b68-9d43-22d7e4dc07c4","Avril-Juillet-1834.txt","Besançon","char-offset:51996","PLACE","http://sws.geonames.org/3033123","Vesontio|Oppidum, Besançon|Vesontio, Besançon|Amphitheater, Besançon|Besançon","-0330/2100",47.230604,6.033129,"arch,settlement,architecturalcomplex","VERIFIED",null,null,null,null],["006d5972-a9e1-4ac6-971d-3b1427855a87","Avril-Juillet-1834.txt","Besançon","char-offset:54358","PLACE","http://sws.geonames.org/3033123","Vesontio|Oppidum, Besançon|Vesontio, Besançon|Amphitheater, Besançon|Besançon","-0330/2100",47.230604,6.033129,"arch,settlement,architecturalcomplex","VERIFIED",null,null,null,null],["c17871c8-f821-437a-ad6f-1e951594f19d","Avril-Juillet-1834.txt","Saint-Pierre","char-offset:54674","PLACE","http://sws.geonames.org/3168714","Saint-Pierre",null,45.71153,7.22683,null,"UNVERIFIED",null,null,null,null],["74aa72a8-802c-4aa7-b51e-f2a097bcc37f","Avril-Juillet-1834.txt","Charbonnières","char-offset:55242","PLACE","http://sws.geonames.org/3026700","Charbonnières-les-Bains",null,45.7842,4.7463,null,"VERIFIED",null,null,null,null],["0c7b3015-e085-4772-8d34-5291fce2e759","Avril-Juillet-1834.txt","Pontarlier","char-offset:55273","PLACE","http://sws.geonames.org/2986302","Ariorica|Pons Ariolica, Pontarlier|Pontarlier","-0030/0640",46.90217,6.35649,"settlement","VERIFIED",null,null,null,null],["816df510-7dad-443a-8fc8-3c1eed02df16","Avril-Juillet-1834.txt","Dole","char-offset:55310","PLACE","http://sws.geonames.org/3021263","Crusinie|Crucinae?, Rochefort-sur-Nenon|Dole|Dole|Dole","-0330/0640",47.124579,5.559928,"unlocated,mine","VERIFIED",null,null,null,null],["16bcdfbd-43c6-4124-9743-4cf247c6d7e8","Avril-Juillet-1834.txt","Dole","char-offset:55310","PLACE","http://pleiades.stoa.org/places/181208","Crusinie|Crucinae?, Rochefort-sur-Nenon|Dole|Dole|Dole","-0330/0640",47.124579,5.559928,"unlocated,mine","VERIFIED",null,null,null,null]],"fields":[{"name":"UUID","type":"string","format":"","analyzerType":"STRING"},{"name":"FILE","type":"string","format":"","analyzerType":"STRING"},{"name":"QUOTE_TRANSCRIPTION","type":"string","format":"","analyzerType":"STRING"},{"name":"ANCHOR","type":"string","format":"","analyzerType":"STRING"},{"name":"TYPE","type":"string","format":"","analyzerType":"STRING"},{"name":"URI","type":"string","format":"","analyzerType":"STRING"},{"name":"VOCAB_LABEL","type":"string","format":"","analyzerType":"STRING"},{"name":"VOCAB_TEMPORAL_BOUNDS","type":"string","format":"","analyzerType":"STRING"},{"name":"LAT","type":"real","format":"","analyzerType":"FLOAT"},{"name":"LNG","type":"real","format":"","analyzerType":"FLOAT"},{"name":"PLACE_TYPE","type":"string","format":"","analyzerType":"STRING"},{"name":"VERIFICATION_STATUS","type":"string","format":"","analyzerType":"STRING"},{"name":"TAGS","type":"string","format":"","analyzerType":"STRING"},{"name":"COMMENTS","type":"geojson","format":"","analyzerType":"PAIR_GEOMETRY_FROM_STRING"},{"name":"GROUP_ID","type":"string","format":"","analyzerType":"STRING"},{"name":"GROUP_ORDER","type":"string","format":"","analyzerType":"STRING"}],"type":"","metadata":{"id":"c8lnqq","format":"row","label":"jcdpbqdxbvlpsm.csv"},"disableDataOperation":false}}];
+            const config = {"version":"v1","config":{"visState":{"filters":[],"layers":[{"id":"uanj9dl","type":"point","config":{"dataId":"c8lnqq","columnMode":"points","label":"point","color":[248,149,112],"highlightColor":[252,242,26,255],"columns":{"lat":"LAT","lng":"LNG"},"isVisible":true,"visConfig":{"radius":17.8,"fixedRadius":false,"opacity":0.8,"outline":false,"thickness":2,"strokeColor":null,"colorRange":{"name":"Global Warming","type":"sequential","category":"Uber","colors":["#4C0035","#880030","#B72F15","#D6610A","#EF9100","#FFC300"]},"strokeColorRange":{"name":"Global Warming","type":"sequential","category":"Uber","colors":["#4C0035","#880030","#B72F15","#D6610A","#EF9100","#FFC300"]},"radiusRange":[0,50],"filled":true,"billboard":false,"allowHover":true,"showNeighborOnHover":false,"showHighlightColor":true},"hidden":false,"textLabel":[{"field":null,"color":[255,255,255],"size":18,"offset":[0,0],"anchor":"start","alignment":"center","outlineWidth":0,"outlineColor":[255,0,0,255],"background":false,"backgroundColor":[0,0,200,255]}]},"visualChannels":{"colorField":{"name":"UUID","type":"string"},"colorScale":"ordinal","strokeColorField":null,"strokeColorScale":"quantile","sizeField":{"name":"UUID","type":"string"},"sizeScale":"point"}},{"id":"i278oze","type":"geojson","config":{"dataId":"c8lnqq","columnMode":"geojson","label":"jcdpbqdxbvlpsm","color":[130,154,227],"highlightColor":[252,242,26,255],"columns":{"geojson":"COMMENTS"},"isVisible":true,"visConfig":{"opacity":0.8,"strokeOpacity":0.8,"thickness":0,"strokeColor":[163,233,236],"colorRange":{"name":"Global Warming","type":"sequential","category":"Uber","colors":["#4C0035","#880030","#B72F15","#D6610A","#EF9100","#FFC300"]},"strokeColorRange":{"name":"Global Warming","type":"sequential","category":"Uber","colors":["#4C0035","#880030","#B72F15","#D6610A","#EF9100","#FFC300"]},"radius":10,"sizeRange":[0,10],"radiusRange":[0,50],"heightRange":[0,500],"elevationScale":5,"stroked":true,"filled":false,"enable3d":false,"wireframe":false,"fixedHeight":false},"hidden":false,"textLabel":[{"field":null,"color":[255,255,255],"size":18,"offset":[0,0],"anchor":"start","alignment":"center","outlineWidth":0,"outlineColor":[255,0,0,255],"background":false,"backgroundColor":[0,0,200,255]}]},"visualChannels":{"colorField":null,"colorScale":"quantile","strokeColorField":null,"strokeColorScale":"quantile","sizeField":null,"sizeScale":"linear","heightField":null,"heightScale":"linear","radiusField":null,"radiusScale":"linear"}}],"effects":[],"interactionConfig":{"tooltip":{"fieldsToShow":{"c8lnqq":[{"name":"UUID","format":null},{"name":"FILE","format":null},{"name":"QUOTE_TRANSCRIPTION","format":null},{"name":"ANCHOR","format":null},{"name":"TYPE","format":null}]},"compareMode":false,"compareType":"absolute","enabled":true},"brush":{"size":0.5,"enabled":false},"geocoder":{"enabled":false},"coordinate":{"enabled":false}},"layerBlending":"normal","overlayBlending":"normal","splitMaps":[],"animationConfig":{"currentTime":null,"speed":1},"editor":{"features":[],"visible":true}},"mapState":{"bearing":0,"dragRotate":false,"latitude":47.49215101494217,"longitude":8.386815617046171,"pitch":0,"zoom":5.913130773607987,"isSplit":false,"isViewportSynced":true,"isZoomLocked":false,"splitMapViewports":[]},"mapStyle":{"styleType":"dark-matter","topLayerGroups":{},"visibleLayerGroups":{"label":true,"road":true,"border":false,"building":true,"water":true,"land":true,"3d building":false},"threeDBuildingColor":[15.035172933000911,15.035172933000911,15.035172933000911],"backgroundColor":[0,0,0],"mapStyles":{}},"uiState":{"mapControls":{"mapLegend":{"active":false}}}}};
+
+            const loadedData = keplerGl.KeplerGlSchema.load(
+              datasets,
+              config
+            );
+
+            // For some reason Kepler overwrites the config without extra wait time
+            window.setTimeout(() => {
+              store.dispatch(
+                keplerGl.addDataToMap({
+                  datasets: loadedData.datasets,
+                  config: loadedData.config,
+                  options: {
+                    centerMap: false,
+                  },
+                })
+              );
+            }, 500);
+          }(KeplerGl, store))
+        </script>
+      </body>
+    </html>
+  
