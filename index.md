@@ -22,3 +22,7 @@ Frankenstein iframe
 Pearling industry web map (OpenGulf)
 
 <iframe src="https://opengulf.github.io/webapps/Pearlprotection/index.html#6/28.516/52.077" width="100%" height="800"></iframe>
+
+Kepler Map
+
+<iframe src="kepler.gl" width="100%" height="800"></iframe>
