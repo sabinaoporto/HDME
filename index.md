@@ -8,21 +8,16 @@ The documents used for this work are stored in:
 
 1. Archivo General de Indias (Seville, Spain)
 
-	The documents are classified under the names Indiferente 1558A.
+	The documents are classified under the names Indiferente 1558A. One of the main documents of this File that is being used is the Summary of the Expedition wirten by Balmis. 
+	Here is a sub division of the information it contains.
+
+	<iframe src="Ind 1558A, f 1 - 315" width="100%" height="800"></iframe>
 
 2. Archivo General Militar of Segovia (Spain)
 3. Archivo del Instituto Nacional de Salud (Lima, Peru)
 
 ## The work of Cosme Bueno and Pedro Belomo
 
-Frankenstein iframe
-
-<iframe style='width: 289px; height: 220px;' src='https://voyant-tools.org/tool/Cirrus/?corpus=frank'></iframe>
-
-Pearling industry web map (OpenGulf)
-
-<iframe src="https://opengulf.github.io/webapps/Pearlprotection/index.html#6/28.516/52.077" width="100%" height="800"></iframe>
-
-Kepler Map
+Expedition route before its spliting
 
 <iframe src="kepler.gl" width="100%" height="800"></iframe>
